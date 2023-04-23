@@ -1,0 +1,188 @@
+"linear regression"
+house<-read.csv(file.choose(),sep=",",header = T)
+summary(house)
+names(house)
+pairs(~death_rate+doctor_avail+hosp_avail+annual_income+density_per_capita,data = house)
+housemodel<-lm(density_per_capita~death_rate+doctor_avail+hosp_avail+annual_income,data=house)
+summary(housemodel)
+
+# Predicion in Linear Regression
+index<-read.csv(file.choose(),sep=",",header = T)
+names(index)
+pairs(~index+written+language+tech+gk,data = index)
+model1<-lm(index~.,data = index)
+summary(model1)
+index$pred<-fitted(model1)
+head(index)
+index$res<-residuals(model1)
+head(index)
+"to check the multicolinearity "
+library(car)
+# If all vif value is less than 5 multicollinearity is not present
+vif(model1)
+"plot must be random indicates no heteroscedasticity"
+plot(index$pred,index$res,col="red")
+
+"errors are assumed to be normally destributed" # if accept then auto corelation is not present among errors
+shapiro.test(index$res)
+
+"detecting heteroscedasticity using ncvtest"
+library(car)
+ncvTest(model1,~written+language+tech+ gk)
+
+"detecting autocorelation using derbin watson test d=2(1-r) "
+library(car)
+durbinWatsonTest(model1)
+
+
+"influence plot"
+influencePlot(model1)
+index<-index[-33,]
+
+
+"validation using hold - out method "
+library("caret")
+library("lattice")
+library("ggplot2")
+index<-read.csv(file.choose(),sep=",",header = T)
+summary(index)
+data<-createDataPartition(index$empid,p=0.8,list=F)
+head(data)
+dim(data)
+
+traindata<-index[data,]
+testdata<-index[-data,]
+dim(traindata)
+dim(testdata)
+
+names(traindata)
+modeltrain<-lm(index~written+language+tech+gk,data=traindata)
+modeltrain$res<-residuals(modeltrain)
+RMSEtrain<-sqrt(mean(modeltrain$res**2))
+RMSEtrain
+
+testdata$pred<-predict(modeltrain,testdata)
+testdata$res<-testdata$index-testdata$pred
+RMSEtest<-sqrt(mean(testdata$res**2))
+RMSEtest
+
+
+"validation using k fold method "
+kfolds<-trainControl(method = "cv",number = 4)
+modelkfold<-train(index~written+language+tech+gk,data = index,method="lm",trControl=kfolds)
+modelkfold
+
+"validation using repetative k fold"
+kfoldsrp<-trainControl(method = "repeatedcv",number = 4,repeats = 5)
+modelkfoldsrp<-train(index~written+language+tech+gk,data = index,method="lm",trControl=kfoldsrp)
+modelkfoldsrp
+
+
+"validation usning leave one out"
+kfoldsloocv<-trainControl(method = "LOOCV")
+kfoldsloocvmodel<-train(index~written+language+tech+gk,data = index,method="lm",trControl=kfoldsloocv)
+kfoldsloocvmodel
+
+"model selection forward"
+null<-lm(index~1,data=index)
+full<-lm(index~.,data = index)
+names(index)
+step(null,scope = list(lower=null,upper=full),direction = "forward")
+
+"model selection backword"
+step(full,scope=list(lower=null,upper=full),direction = "backward")
+
+
+index.csv
+death_rate	doctor_avail	hosp_avail	annual_income	density_per_capita
+8	78	284	9.100000381	109
+9.300000191	68	433	8.699999809	144
+7.5	70	739	7.199999809	113
+8.899999619	96	1792	8.899999619	97
+10.19999981	74	477	8.300000191	206
+8.300000191	111	362	10.89999962	124
+8.800000191	77	671	10	152
+8.800000191	168	636	9.100000381	162
+10.69999981	82	329	8.699999809	150
+11.69999981	89	634	7.599999905	134
+8.5	149	631	10.80000019	292
+8.300000191	60	257	9.5	108
+8.199999809	96	284	8.800000191	111
+7.900000095	83	603	9.5	182
+10.30000019	130	686	8.699999809	129
+7.400000095	145	345	11.19999981	158
+9.600000381	112	1357	9.699999809	186
+9.300000191	131	544	9.600000381	177
+10.60000038	80	205	9.100000381	127
+9.699999809	130	1264	9.199999809	179
+11.60000038	140	688	8.300000191	80
+8.100000381	154	354	8.399999619	103
+9.800000191	118	1632	9.399999619	101
+7.400000095	94	348	9.800000191	117
+9.399999619	119	370	10.39999962	88
+11.19999981	153	648	9.899999619	78
+9.100000381	116	366	9.199999809	102
+10.5	97	540	10.30000019	95
+11.89999962	176	680	8.899999619	80
+8.399999619	75	345	9.600000381	92
+5	134	525	10.30000019	126
+9.800000191	161	870	10.39999962	108
+9.800000191	111	669	9.699999809	77
+10.80000019	114	452	9.600000381	60
+10.10000038	142	430	10.69999981	71
+10.89999962	238	822	10.30000019	86
+9.199999809	78	190	10.69999981	93
+8.300000191	196	867	9.600000381	106
+7.300000191	125	969	10.5	162
+9.399999619	82	499	7.699999809	95
+9.399999619	125	925	10.19999981	91
+9.800000191	129	353	9.899999619	52
+3.599999905	84	288	8.399999619	110
+8.399999619	183	718	10.39999962	69
+10.80000019	119	540	9.199999809	57
+10.10000038	180	668	13	106
+9	82	347	8.800000191	40
+10	71	345	9.199999809	50
+11.30000019	118	463	7.800000191	35
+11.30000019	121	728	8.199999809	86
+12.80000019	68	383	7.400000095	57
+10	112	316	10.39999962	57
+6.699999809	109	388	8.899999619	94
+
+
+
+index1.csv
+empid	index	written	language	tech	gk
+1	45.52	43.83	55.92	51.82	43.58
+2	40.1	32.71	32.56	51.49	51.03
+3	50.61	56.64	54.84	52.29	52.47
+4	38.97	51.53	59.69	47.48	47.69
+5	41.87	51.35	51.5	47.59	45.77
+6	38.71	39.6	43.63	48.34	42.06
+7	31.64	61.08	39.09	41.25	37
+8	59.84	53.38	61.13	58.08	52.28
+9	53.92	56.75	60.62	53.28	54.01
+10	50.01	61.31	44.69	54.18	49.14
+11	33.72	44.54	41.48	45.79	45.07
+12	65.35	67.24	60.1	56.88	54.98
+13	49.75	71.65	61.54	48.26	45.54
+14	36.94	42.06	57.04	49.51	39.08
+15	56.87	53.56	51.04	54.68	56.24
+16	55.73	55.95	64.92	52.21	55.78
+17	51.55	53.68	42.13	51.42	51.93
+18	66.39	75.03	60.35	53.61	55.97
+19	51.15	49.14	64.38	55.56	49.12
+20	41.77	60.54	47.64	48.88	45.87
+21	33.77	37.87	61.28	46.42	44.23
+22	56.82	48.71	58.06	58.86	52.74
+23	41.19	52.36	37.98	47.06	40.92
+24	58.55	48.02	60.83	58	53.51
+25	43.38	45.59	64.9	49.83	42.75
+26	49.73	52.23	63.59	57.46	52.08
+27	45.21	33.93	34.08	56.93	51.89
+28	53.8	59.83	63.29	52.88	58.9
+29	43	55.08	68.53	50.32	54.25
+30	49.45	54.36	55.77	50.83	47.98
+31	45.34	43.92	44.89	51.64	50.53
+32	34.88	69.01	47.56	46.46	40.31
+33	64.04	55.32	66.64	67.27	53.5
